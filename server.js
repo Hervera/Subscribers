@@ -1,20 +1,19 @@
-require('dotenv').config();
-
 const express = require('express');
-const app = express();
-const mongoose = require('mongoose');
-
-mongoose.connect(process.env.DATABASE_URL);
-
-const db = mongoose.connection;
-
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', () => console.log('Connected to the database'));
-
-app.use(express.json());
-
+const { port } = require('./config/env');
+const connectDatabase = require('./config/database');
+const logger = require('./config/logger');
 const subscriberRouter = require('./routes/subscribers');
 
+const app = express();
+
+app.use(express.json());
 app.use('/subscribers', subscriberRouter);
 
-app.listen(3000, () => console.log('Server is running on port 3000'));
+connectDatabase()
+  .then(() => {
+    app.listen(port, () => logger.info(`Server is running on port ${port}`));
+  })
+  .catch((err) => {
+    logger.error('Failed to connect to the database:', err.message);
+    process.exit(1);
+  });
