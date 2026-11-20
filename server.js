@@ -1,13 +1,7 @@
-const express = require('express');
+const app = require('./app');
 const { port } = require('./config/env');
 const connectDatabase = require('./config/database');
 const logger = require('./config/logger');
-const subscriberRouter = require('./routes/subscribers');
-
-const app = express();
-
-app.use(express.json());
-app.use('/subscribers', subscriberRouter);
 
 connectDatabase()
   .then(() => {
