@@ -1,20 +1,20 @@
-const { describe, it, mock, afterEach } = require('node:test');
-const assert = require('node:assert/strict');
-const subscriberService = require('../../../services/subscribers');
-const { getSubscriber } = require('../../../middlewares/getSubscriber');
-const { mockResponse, firstCallArgs } = require('../helpers');
+import { describe, it, mock, afterEach } from 'node:test';
+import assert from 'node:assert/strict';
+import { subscriberService } from '../../../services/subscribers';
+import { getSubscriber } from '../../../middlewares/getSubscriber';
+import { mockResponse, asRequest, asResponse, firstCallArgs } from '../helpers';
 
 // Replaces the service's database lookup with a fake for one test
-const fakeLookup = (implementation) =>
+const fakeLookup = (implementation: (id: string) => Promise<unknown>) =>
   mock.method(subscriberService, 'getSubscriberById', implementation);
 
 afterEach(() => mock.restoreAll());
 
 const run = async () => {
-  const req = { params: { id: 'abc123' } };
+  const req = asRequest<{ id: string }>({ params: { id: 'abc123' } });
   const res = mockResponse();
   const next = mock.fn();
-  await getSubscriber(req, res, next);
+  await getSubscriber(req, asResponse(res), next);
   return { res, next };
 };
 

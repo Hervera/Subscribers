@@ -1,8 +1,8 @@
-const { describe, it, mock } = require('node:test');
-const assert = require('node:assert/strict');
-const Joi = require('joi');
-const { validate } = require('../../../middlewares/validate');
-const { mockResponse, firstCallArgs } = require('../helpers');
+import { describe, it, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import Joi from 'joi';
+import { validate } from '../../../middlewares/validate';
+import { mockResponse, asRequest, asResponse, firstCallArgs } from '../helpers';
 
 // A small schema of its own, so these tests don't depend on the subscriber rules
 const bookSchema = Joi.object({
@@ -10,11 +10,11 @@ const bookSchema = Joi.object({
   pages: Joi.number()
 });
 
-const run = (body, schema = bookSchema) => {
-  const req = { body };
+const run = (body: unknown, schema = bookSchema) => {
+  const req = asRequest({ body });
   const res = mockResponse();
   const next = mock.fn();
-  validate(schema)(req, res, next);
+  validate(schema)(req, asResponse(res), next);
   return { req, res, next };
 };
 

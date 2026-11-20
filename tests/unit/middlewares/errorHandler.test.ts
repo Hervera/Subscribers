@@ -1,33 +1,32 @@
-const { describe, it, mock } = require('node:test');
-const assert = require('node:assert/strict');
-const errorHandler = require('../../../middlewares/errorHandler');
-const { mockResponse, firstCallArgs } = require('../helpers');
+import { describe, it, mock } from 'node:test';
+import assert from 'node:assert/strict';
+import errorHandler from '../../../middlewares/errorHandler';
+import { mockResponse, asRequest, asResponse, firstCallArgs } from '../helpers';
 
-const makeError = (message, props = {}) => Object.assign(new Error(message), props);
+const makeError = (message: string, props: object = {}) => Object.assign(new Error(message), props);
+
+const run = (err: Error, res = mockResponse(), next = mock.fn()) => {
+  errorHandler(err, asRequest({}), asResponse(res), next);
+  return { res, next };
+};
 
 describe('errorHandler', () => {
   it('responds 400 for a Mongoose validation error', () => {
-    const res = mockResponse();
-
-    errorHandler(makeError('name is required', { name: 'ValidationError' }), {}, res, mock.fn());
+    const { res } = run(makeError('name is required', { name: 'ValidationError' }));
 
     assert.deepEqual(firstCallArgs(res.status), [400]);
     assert.deepEqual(firstCallArgs(res.json), [{ message: 'name is required' }]);
   });
 
   it('uses the status set on the error', () => {
-    const res = mockResponse();
-
-    errorHandler(makeError('Bad JSON', { status: 400 }), {}, res, mock.fn());
+    const { res } = run(makeError('Bad JSON', { status: 400 }));
 
     assert.deepEqual(firstCallArgs(res.status), [400]);
     assert.deepEqual(firstCallArgs(res.json), [{ message: 'Bad JSON' }]);
   });
 
   it('responds 500 for any other error', () => {
-    const res = mockResponse();
-
-    errorHandler(makeError('Database is down'), {}, res, mock.fn());
+    const { res } = run(makeError('Database is down'));
 
     assert.deepEqual(firstCallArgs(res.status), [500]);
     assert.deepEqual(firstCallArgs(res.json), [{ message: 'Database is down' }]);
@@ -36,10 +35,9 @@ describe('errorHandler', () => {
   it('hands the error to Express when the response has already started', () => {
     const res = mockResponse();
     res.headersSent = true;
-    const next = mock.fn();
     const err = makeError('Too late');
 
-    errorHandler(err, {}, res, next);
+    const { next } = run(err, res);
 
     assert.deepEqual(firstCallArgs(next), [err]);
     assert.equal(res.status.mock.callCount(), 0);
