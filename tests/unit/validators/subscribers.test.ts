@@ -1,9 +1,10 @@
-const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
-const { createSubscriberSchema, updateSubscriberSchema } = require('../../../validators/subscribers');
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import type { ObjectSchema } from 'joi';
+import { createSubscriberSchema, updateSubscriberSchema } from '../../../validators/subscribers';
 
 // Lists each problem as "field: Joi error type", or [] when the payload is valid
-const problems = (schema, payload) => {
+const problems = (schema: ObjectSchema, payload: unknown) => {
   const { error } = schema.validate(payload, { abortEarly: false });
   return error ? error.details.map((d) => `${d.path.join('.')}: ${d.type}`) : [];
 };

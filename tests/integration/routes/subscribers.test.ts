@@ -1,15 +1,17 @@
-const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
-const mongoose = require('mongoose');
-const request = require('supertest');
-const app = require('../../../app');
-require('../../setup'); // in-memory MongoDB for this file
-const Subscriber = require('../../../models/subscriber');
+import '../../setup'; // in-memory MongoDB for this file
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
+import request from 'supertest';
+import app from '../../../app';
+import Subscriber, { type ISubscriber } from '../../../models/subscriber';
 
-const addSubscriber = (fields = {}) =>
+const addSubscriber = (fields: Partial<ISubscriber> = {}) =>
   Subscriber.create({ name: 'Ada Lovelace', subscribedToChannel: 'Tech Talks', ...fields });
 
 const unusedId = () => new mongoose.Types.ObjectId().toString();
+
+const names = (body: { name: string }[]) => body.map((s) => s.name).sort();
 
 describe('GET /subscribers', () => {
   it('returns all subscribers', async () => {
@@ -19,7 +21,7 @@ describe('GET /subscribers', () => {
     const res = await request(app).get('/subscribers');
 
     assert.equal(res.status, 200);
-    assert.deepEqual(res.body.map((s) => s.name).sort(), ['Ada', 'Grace']);
+    assert.deepEqual(names(res.body), ['Ada', 'Grace']);
   });
 
   it('returns an empty array when there are no subscribers', async () => {
@@ -136,7 +138,7 @@ describe('PATCH /subscribers/:id', () => {
     assert.equal(res.body.subscribedToChannel, 'Tech Talks');
 
     const saved = await Subscriber.findById(existing.id);
-    assert.equal(saved.name, 'Grace Hopper');
+    assert.equal(saved?.name, 'Grace Hopper');
   });
 
   it('leaves the subscriber unchanged when the body is empty', async () => {
@@ -160,7 +162,7 @@ describe('PATCH /subscribers/:id', () => {
     assert.equal(res.body.message, 'subscribedToChannel is not allowed to be empty');
 
     const saved = await Subscriber.findById(existing.id);
-    assert.equal(saved.subscribedToChannel, 'Tech Talks');
+    assert.equal(saved?.subscribedToChannel, 'Tech Talks');
   });
 
   it('returns 404 when the subscriber does not exist', async () => {

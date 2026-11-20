@@ -1,11 +1,15 @@
-const { describe, it } = require('node:test');
-const assert = require('node:assert/strict');
-const mongoose = require('mongoose');
-require('../../setup'); // in-memory MongoDB for this file
-const Subscriber = require('../../../models/subscriber');
-const subscriberService = require('../../../services/subscribers');
+import '../../setup'; // in-memory MongoDB for this file
+import { describe, it } from 'node:test';
+import assert from 'node:assert/strict';
+import mongoose from 'mongoose';
+import Subscriber, { type ISubscriber } from '../../../models/subscriber';
+import {
+  subscriberService,
+  type NewSubscriber,
+  type SubscriberUpdate
+} from '../../../services/subscribers';
 
-const addSubscriber = (fields = {}) =>
+const addSubscriber = (fields: Partial<ISubscriber> = {}) =>
   Subscriber.create({ name: 'Ada Lovelace', subscribedToChannel: 'Tech Talks', ...fields });
 
 describe('subscriber service', () => {
@@ -23,18 +27,23 @@ describe('subscriber service', () => {
     });
 
     it('does not let the caller set the subscribe date', async () => {
-      const subscriber = await subscriberService.createSubscriber({
+      const payload = {
         name: 'Ada Lovelace',
         subscribedToChannel: 'Tech Talks',
         subscribeDate: new Date('2000-01-01')
-      });
+      };
+
+      const subscriber = await subscriberService.createSubscriber(payload);
 
       assert.notEqual(subscriber.subscribeDate.getFullYear(), 2000);
     });
 
     it('rejects a subscriber missing required fields', async () => {
+      // The type forbids this, so cast to simulate bad input reaching the service
+      const payload = { name: 'Ada Lovelace' } as NewSubscriber;
+
       await assert.rejects(
-        subscriberService.createSubscriber({ name: 'Ada Lovelace' }),
+        subscriberService.createSubscriber(payload),
         mongoose.Error.ValidationError
       );
       assert.equal(await Subscriber.countDocuments(), 0);
@@ -62,7 +71,7 @@ describe('subscriber service', () => {
 
       const found = await subscriberService.getSubscriberById(existing.id);
 
-      assert.equal(found.name, 'Ada Lovelace');
+      assert.equal(found?.name, 'Ada Lovelace');
     });
 
     it('returns null when no subscriber has that id', async () => {
@@ -83,8 +92,8 @@ describe('subscriber service', () => {
       await subscriberService.updateSubscriber(existing, { name: 'Grace Hopper' });
 
       const saved = await Subscriber.findById(existing.id);
-      assert.equal(saved.name, 'Grace Hopper');
-      assert.equal(saved.subscribedToChannel, 'Tech Talks');
+      assert.equal(saved?.name, 'Grace Hopper');
+      assert.equal(saved?.subscribedToChannel, 'Tech Talks');
     });
 
     it('updates both fields when both are provided', async () => {
@@ -96,8 +105,8 @@ describe('subscriber service', () => {
       });
 
       const saved = await Subscriber.findById(existing.id);
-      assert.equal(saved.name, 'Grace Hopper');
-      assert.equal(saved.subscribedToChannel, 'Compilers');
+      assert.equal(saved?.name, 'Grace Hopper');
+      assert.equal(saved?.subscribedToChannel, 'Compilers');
     });
 
     it('ignores fields sent as null', async () => {
@@ -106,18 +115,20 @@ describe('subscriber service', () => {
       await subscriberService.updateSubscriber(existing, { name: null, subscribedToChannel: null });
 
       const saved = await Subscriber.findById(existing.id);
-      assert.equal(saved.name, 'Ada Lovelace');
-      assert.equal(saved.subscribedToChannel, 'Tech Talks');
+      assert.equal(saved?.name, 'Ada Lovelace');
+      assert.equal(saved?.subscribedToChannel, 'Tech Talks');
     });
 
     it('does not change the subscribe date', async () => {
       const existing = await addSubscriber();
       const originalDate = existing.subscribeDate.getTime();
+      // The type forbids this, so cast to simulate bad input reaching the service
+      const payload = { subscribeDate: new Date('2000-01-01') } as unknown as SubscriberUpdate;
 
-      await subscriberService.updateSubscriber(existing, { subscribeDate: new Date('2000-01-01') });
+      await subscriberService.updateSubscriber(existing, payload);
 
       const saved = await Subscriber.findById(existing.id);
-      assert.equal(saved.subscribeDate.getTime(), originalDate);
+      assert.equal(saved?.subscribeDate.getTime(), originalDate);
     });
   });
 
