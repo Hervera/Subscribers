@@ -1,13 +1,18 @@
-// Rejects the request with 400 if any of the given body fields are missing or empty
-const requireFields = (fields) => (req, res, next) => {
-  const body = req.body ?? {};
-  const missing = fields.filter((field) => body[field] == null || body[field] === '');
+// Checks req.body against a Joi schema before the request reaches the controller.
+// Unknown fields are dropped, and req.body is replaced with the validated value.
+const validate = (schema) => (req, res, next) => {
+  const { error, value } = schema.validate(req.body ?? {}, {
+    abortEarly: false,
+    stripUnknown: true,
+    errors: { wrap: { label: false } }
+  });
 
-  if (missing.length > 0) {
-    return res.status(400).json({ message: `Missing required fields: ${missing.join(', ')}` });
+  if (error) {
+    return res.status(400).json({ message: error.message });
   }
 
+  req.body = value;
   next();
 };
 
-module.exports = { requireFields };
+module.exports = { validate };
